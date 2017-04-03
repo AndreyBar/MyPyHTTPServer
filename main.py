@@ -2,6 +2,7 @@ import os
 import socket
 import sys
 import io
+import mimetypes
 
 class MyServer():
     def __init__(self):
@@ -42,7 +43,7 @@ class MyServer():
         files = os.listdir()
 
         if method == "GET" and "index.html" in files:
-            self.open_html("index.html")
+            self.open_file("index.html")
             return
 
         if method == "GET" and os.path.isdir(address[1:]):
@@ -67,7 +68,6 @@ class MyServer():
         else:
             f.write("<html>\n<title>Listing for %s</title>\n" % path.split('/')[-1])
             f.write("<body>\n<h1>Listing for %s</h1>\n" % path.split('/')[-1])
-            print(path.split('\\')[-1])
         f.write("<hr>\n<ul>\n")
         for name in files:
             if self.main_dir == path:
@@ -81,32 +81,17 @@ class MyServer():
         return
 
 
-    def open_html(self, index):
-        """A method for opening html files"""
-        file = open(index)
-        f = file.read()
-        file.close()
-        self.send_answer(conn, typ="text/html; charset=utf-8", data=f.encode())
-        return
-
-
     def open_file(self, file):
-        """A method for proper opening text files"""
-        if ".html" in file or ".htm" in file:
-            self.open_html(file)
-            return
-        s = io.StringIO()
-        s.write("<!DOCTYPE html>")
-        s.write("<html>\n<title>%s</title>\n" % file)
-        s.write("<body>\n")
-        with open(file) as f:
-            s.write("<pre>\n")
-            for line in f:
-                s.write(line)
-            s.write("</pre>\n")
-        s.write("</body>\n</html>")
-        self.send_answer(conn, typ="text/html; charset=utf-8", data=s.getvalue().encode())
-        s.close()
+        """A method for proper opening any kind of files"""
+
+        t = "text/html; charset=utf-8"
+        base, ext = os.path.splitext(file)
+        if ext in mimetypes.types_map:
+            t = mimetypes.types_map[ext]
+
+        file = open(file, 'rb')
+        s = file.read()
+        self.send_answer(conn, typ=t, data=s)
         return
 
 
