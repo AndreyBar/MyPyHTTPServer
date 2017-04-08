@@ -1,3 +1,4 @@
+"""A module that implements a realization of simple http server."""
 import os
 import socket
 import sys
@@ -5,6 +6,7 @@ import io
 import mimetypes
 
 class MyServer():
+    """Simple http requests handler."""
     def __init__(self):
         self.main_dir = os.getcwd()
         print("main_dir:", self.main_dir)
@@ -18,27 +20,26 @@ class MyServer():
         conn.send(b"Content-Length: " + bytes(len(data)) + b"\r\n")
         conn.send(b"\r\n")
         conn.send(data)
-     
 
-    def get_req(self, conn, addr):
+    def get_req(self, conn):
         """A method that handles get requests from client"""
         data = b""
-     
-        while not b"\r\n" in data:
+
+        while b"\r\n" not in data:
             tmp = conn.recv(1024)
             if not tmp:
                 break
             else:
                 data += tmp
-     
+
         if not data:
             return
-     
+
         udata = data.decode("utf-8")
         udata = udata.split("\r\n", 1)[0]
         print("New request:", udata)
-        method, address, protocol = udata.split(" ", 2)
-     
+        method, address, _ = udata.split(" ", 2)
+
         dict_path = os.getcwd()
         files = os.listdir()
 
@@ -73,8 +74,8 @@ class MyServer():
             if self.main_dir == path:
                 f.write('<li><a href="%s">%s</a></li>\n' % (name, name))
             else:
-               f.write('<li><a href="%s">%s</a></li>\n' % (path + "/" + name, name)) 
-            
+                f.write('<li><a href="%s">%s</a></li>\n' % (path + "/" + name, name))
+
         f.write("</ul>\n</html>")
         self.send_answer(conn, typ="text/html; charset=utf-8", data=f.getvalue().encode())
         f.close()
@@ -85,13 +86,13 @@ class MyServer():
         """A method for proper opening any kind of files"""
 
         t = "text/html; charset=utf-8"
-        base, ext = os.path.splitext(file)
+        _, ext = os.path.splitext(file)
         if ext in mimetypes.types_map:
             t = mimetypes.types_map[ext]
 
         file = open(file, 'rb')
-        s = file.read()
-        self.send_answer(conn, typ=t, data=s)
+        file_read = file.read()
+        self.send_answer(conn, typ=t, data=file_read)
         return
 
 
@@ -110,10 +111,10 @@ if __name__ == '__main__':
             conn, addr = s.accept()
             print("New connection from " + addr[0])
             try:
-                server.get_req(conn, addr)
+                server.get_req(conn)
             except:
                 server.send_answer(conn, "500 Internal Server Error", data=b"Error")
             finally:
                 conn.close()
-    finally: 
+    finally:
         s.close()
